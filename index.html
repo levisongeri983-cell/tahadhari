@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tahadhari — Prototype demo (simulated scenario)</title>
+<meta name="description" content="Tahadhari — demo of a flood-risk coordination prototype for Tana River County, Kenya. Runs on a simulated scenario with illustrative data and thresholds: rule-based risk scoring, explainable recommendations (Trace) and routing to responsible agencies.">
+<meta property="og:title" content="Tahadhari — Coordination prototype demo (simulated scenario)">
+<meta property="og:description" content="An interactive demo of a flood-risk coordination prototype: simulated flood scenario, rule-based explainable recommendations, and routing to responsible agencies for Tana River County, Kenya.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Tahadhari — Coordination prototype demo (simulated scenario)">
+<meta name="twitter:description" content="Simulated flood scenario, explainable rule-based recommendations, and agency routing — Module 1 of a modular coordination prototype.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 220'%3E%3Cpath d='M100,8 L178,38 L178,108 C178,168 140,202 100,214 C60,202 22,168 22,108 L22,38 Z' fill='%230B2E33' stroke='%232E7D8C' stroke-width='9'/%3E%3Cpath d='M58,58 C58,90 88,100 100,150' fill='none' stroke='%232E7D8C' stroke-width='8'/%3E%3Cpath d='M100,42 L100,150' fill='none' stroke='%232E7D8C' stroke-width='8'/%3E%3Cpath d='M142,58 C142,90 112,100 100,150' fill='none' stroke='%232E7D8C' stroke-width='8'/%3E%3Ccircle cx='100' cy='150' r='10' fill='%232E7D8C'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+  :root{
+    --deep:#0B2E33; --teal:#154B52; --teal-light:#2E7D8C; --sand:#F6F4EE;
+    --ink:#0B2E33; --muted:#5C7278; --line:#DDE4E1;
+    --none:#3E8F5C; --watch:#2E7D8C; --warning:#C98A1E; --severe:#C4571F; --critical:#A13A2E;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--sand); color:var(--ink); font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  header{background:var(--deep); color:var(--sand); padding:26px 40px 22px;}
+  .header-row{display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:16px; max-width:1240px; margin:0 auto;}
+  .brand-row{display:flex; gap:16px; align-items:flex-start;}
+  .logo-mark{width:40px; height:44px; flex-shrink:0; margin-top:2px;}
+  .wordmark{font-family:'IBM Plex Mono',monospace; font-weight:600; letter-spacing:0.14em; font-size:12.5px; color:#9FD4C4; margin-bottom:6px;}
+  h1{font-family:'Fraunces',serif; font-weight:600; font-size:30px; margin:0 0 6px; letter-spacing:-0.01em;}
+  .tagline{font-size:13.5px; color:#B9CFD1; max-width:520px; line-height:1.5; margin:0;}
+  .module-pills{display:flex; flex-direction:column; gap:7px; align-items:flex-end;}
+  .pill{display:flex; align-items:center; gap:8px; font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:0.03em; padding:5px 11px; border-radius:20px; border:1px solid rgba(255,255,255,0.18);}
+  .pill.live{background:rgba(62,143,92,0.18); color:#9FE0B4;}
+  .pill.stub{background:rgba(255,255,255,0.05); color:#8AA0A3;}
+  .dot{width:6px;height:6px;border-radius:50%;}
+  .dot.live{background:#4CC383;} .dot.stub{background:#5C7278;}
+
+  main{max-width:1240px; margin:0 auto; padding:30px 40px 60px;}
+  .section-label{font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.11em; text-transform:uppercase; color:var(--muted); margin:0 0 12px; display:flex; align-items:center; gap:8px;}
+  .section-label .tag{background:var(--teal-light); color:#fff; font-size:9px; padding:2px 7px; border-radius:10px; letter-spacing:0.04em;}
+  .section-label .tag.soon{background:#B7BFB9; color:#3A423E;}
+
+  .replay-box{background:#fff; border:1px solid var(--line); border-radius:14px; padding:20px 24px; margin-bottom:28px; display:flex; align-items:center; gap:24px; flex-wrap:wrap;}
+  .replay-date{font-family:'IBM Plex Mono',monospace; font-size:25px; font-weight:600; min-width:140px; color:var(--deep);}
+  .replay-date span{display:block; font-size:10.5px; color:var(--muted); font-weight:400; letter-spacing:0.06em; margin-bottom:2px;}
+  .slider-wrap{flex:1; min-width:200px;}
+  input[type=range]{width:100%; -webkit-appearance:none; height:4px; border-radius:2px; background:var(--line); outline:none;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:18px;height:18px;border-radius:50%; background:var(--teal-light); border:3px solid #fff; box-shadow:0 0 0 1px var(--teal-light); cursor:pointer;}
+  .slider-ticks{display:flex; justify-content:space-between; font-family:'IBM Plex Mono',monospace; font-size:9.5px; color:var(--muted); margin-top:7px;}
+  .play-btn{background:var(--deep); color:#fff; border:none; border-radius:8px; padding:9px 16px; font-family:'IBM Plex Mono',monospace; font-size:11.5px; letter-spacing:0.03em; cursor:pointer;}
+  .play-btn:hover{background:var(--teal);}
+
+  .two-col{display:grid; grid-template-columns:1.15fr 1fr; gap:20px; margin-bottom:32px;}
+
+  .impact-strip{background:var(--deep); border-radius:14px; padding:18px 24px; margin-bottom:28px; display:flex; align-items:center; gap:28px; flex-wrap:wrap;}
+  .impact-stat{display:flex; flex-direction:column;}
+  .impact-stat .iv{font-family:'Fraunces',serif; font-size:26px; font-weight:600; color:#9FD4C4; line-height:1;}
+  .impact-stat .il{font-family:'IBM Plex Mono',monospace; font-size:9.5px; color:#8AA0A3; margin-top:4px; letter-spacing:0.03em; max-width:150px; line-height:1.3;}
+  .impact-cite{margin-left:auto; max-width:340px; font-size:11px; color:#B9CFD1; line-height:1.5; border-left:1px solid #2E5A61; padding-left:20px;}
+  .impact-cite b{color:#D8E5E3;}
+  @media (max-width:820px){ .impact-cite{margin-left:0; border-left:none; padding-left:0; border-top:1px solid #2E5A61; padding-top:14px; max-width:none;} }
+  @media (max-width:920px){.two-col{grid-template-columns:1fr;}}
+  .panel{background:#fff; border:1px solid var(--line); border-radius:14px; overflow:hidden;}
+  #map{height:420px; width:100%;}
+  .map-legend{display:flex; gap:14px; flex-wrap:wrap; padding:12px 16px; border-top:1px solid var(--line); font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--muted);}
+  .map-legend span{display:inline-flex; align-items:center; gap:5px;}
+  .swatch{width:9px;height:9px;border-radius:50%;display:inline-block;}
+
+  .forecast-list{padding:16px;}
+  .forecast-row{display:flex; align-items:center; gap:12px; padding:10px 4px; border-bottom:1px solid var(--line);}
+  .forecast-row:last-child{border-bottom:none;}
+  .fr-name{width:64px; font-family:'Fraunces',serif; font-weight:600; font-size:14px;}
+  .fr-spark{flex:1; height:34px;}
+  .fr-val{font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--muted); width:96px; text-align:right;}
+
+  .grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(210px,1fr)); gap:16px; margin-bottom:32px;}
+  .card{background:#fff; border:1px solid var(--line); border-radius:14px; padding:16px 16px 14px; position:relative;}
+  .card-top{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;}
+  .loc-name{font-family:'Fraunces',serif; font-size:18px; font-weight:600;}
+  .loc-pop{font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--muted); margin-top:2px;}
+  .badge{font-family:'IBM Plex Mono',monospace; font-size:9.5px; letter-spacing:0.05em; font-weight:600; padding:4px 8px; border-radius:20px; color:#fff; white-space:nowrap;}
+  .gauge-row{display:flex; align-items:flex-end; gap:12px; margin:12px 0 8px;}
+  .gauge{width:30px; height:66px; border-radius:6px; background:#EEF1EE; position:relative; overflow:hidden; border:1px solid var(--line);}
+  .gauge-fill{position:absolute; bottom:0; left:0; width:100%; transition:height .35s ease, background .35s ease;}
+  .gauge-danger-line{position:absolute; left:-3px; right:-3px; height:2px; background:var(--deep);}
+  .gauge-readout .level{font-family:'IBM Plex Mono',monospace; font-size:19px; font-weight:600; line-height:1;}
+  .gauge-readout .danger{font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--muted); margin-top:4px;}
+  .explain{font-size:12px; color:var(--muted); line-height:1.5; margin-top:2px;}
+
+  .alert{background:#fff; border:1px solid var(--line); border-left:4px solid var(--line); border-radius:10px; padding:15px 17px; margin-bottom:11px;}
+  .alert-head{display:flex; align-items:center; gap:10px; margin-bottom:7px; flex-wrap:wrap;}
+  .alert-msg{font-size:13px; line-height:1.5;}
+  .action{font-size:12px; color:var(--muted); margin-top:7px; padding-left:0; display:flex; gap:8px; align-items:baseline;}
+  .action .arrow{color:var(--teal-light);}
+  .src-box{background:#fff; border:1px solid var(--line); border-radius:12px; padding:14px 18px; margin-bottom:18px;}
+  .src-compare{font-family:'IBM Plex Mono',monospace; font-size:12px; line-height:1.6; margin-top:10px; padding-top:10px; border-top:1px solid var(--line);}
+  .src-compare b{color:var(--deep);}
+  .fmt-note{font-size:12.5px; line-height:1.55; color:var(--muted); margin:-4px 0 12px; max-width:900px;}
+  .lang-row{display:flex; gap:8px; margin-bottom:14px;}
+  .lang-btn{font-family:'IBM Plex Mono',monospace; font-size:11px; padding:6px 12px; border-radius:20px; border:1px solid var(--line); background:#fff; color:var(--deep); cursor:pointer;}
+  .lang-btn.on{background:var(--deep); color:#fff; border-color:var(--deep);}
+  .lang-btn:focus-visible{outline:2px solid var(--teal-light); outline-offset:2px;}
+  .fmt-card{background:#fff; border:1px solid var(--line); border-left:4px solid var(--line); border-radius:10px; padding:15px 17px; margin-bottom:11px;}
+  .fmt-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:12px; margin-top:10px;}
+  .fmt-box{background:var(--sand); border-radius:8px; padding:10px 12px;}
+  .fmt-label{font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.06em; color:var(--muted); margin-bottom:5px; display:flex; justify-content:space-between; gap:8px;}
+  .fmt-text{font-size:12.5px; line-height:1.5;}
+  .over{color:#A13A2E; font-weight:600;}
+  .stage-row{display:grid; grid-template-columns:110px 1fr; gap:6px 14px; background:#fff; border:1px solid var(--line); border-left:4px solid var(--line); border-radius:10px; padding:12px 16px; margin-bottom:10px; font-size:12.5px; line-height:1.5;}
+  .stage-row b{font-family:'Fraunces',serif; font-size:15px;}
+  @media (max-width:640px){ .stage-row{grid-template-columns:1fr;} }
+  .org-tag{font-family:'IBM Plex Mono',monospace; font-size:9.5px; background:var(--sand); color:var(--teal); padding:2px 7px; border-radius:5px; white-space:nowrap;}
+  .empty-state{font-family:'IBM Plex Mono',monospace; font-size:12.5px; color:var(--muted); background:#fff; border:1px dashed var(--line); border-radius:10px; padding:20px; text-align:center;}
+
+  .org-card{background:#fff; border:1px solid var(--line); border-radius:14px; padding:16px 17px; position:relative; transition:border-color .3s ease;}
+  .org-card.active{border-color:var(--teal-light); box-shadow:0 0 0 1px rgba(46,125,140,0.15);}
+  .org-top{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;}
+  .org-name{font-family:'Fraunces',serif; font-size:15px; font-weight:600; line-height:1.3; max-width:75%;}
+  .org-status{font-family:'IBM Plex Mono',monospace; font-size:9.5px; font-weight:600; padding:3px 8px; border-radius:12px; white-space:nowrap;}
+  .org-status.active{background:var(--critical); color:#fff;}
+  .org-status.idle{background:#EEF1EE; color:var(--muted);}
+  .org-meta{font-size:11.5px; color:var(--muted); line-height:1.6;}
+  .org-meta b{color:var(--ink); font-weight:600;}
+  .org-locs{margin-top:8px; font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--teal); line-height:1.5;}
+
+  /* Assistant */
+  .assistant{background:var(--deep); border-radius:16px; padding:24px 26px; color:var(--sand); margin-bottom:32px;}
+  .assistant-label{color:#9FD4C4;}
+  .assistant-note{font-size:12px; color:#8AA0A3; margin:6px 0 16px; max-width:720px; line-height:1.5;}
+  .chips{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;}
+  .chip{font-family:'IBM Plex Mono',monospace; font-size:11px; background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.15); color:#D8E5E3; padding:6px 12px; border-radius:20px; cursor:pointer;}
+  .chip:hover{background:rgba(255,255,255,0.14);}
+  .ask-row{display:flex; gap:10px; margin-bottom:14px;}
+  .ask-row input{flex:1; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.2); border-radius:8px; padding:11px 14px; color:#fff; font-family:'Inter',sans-serif; font-size:13px;}
+  .ask-row input::placeholder{color:#6F8B8F;}
+  .ask-row button{background:var(--teal-light); border:none; border-radius:8px; padding:0 20px; color:#fff; font-family:'IBM Plex Mono',monospace; font-size:12px; cursor:pointer;}
+  .ask-row button:hover{background:#3A94A5;}
+  .chat-log{display:flex; flex-direction:column; gap:10px; max-height:230px; overflow-y:auto;}
+  .chat-q{font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:#7FA8AC;}
+  .chat-a{background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:11px 14px; font-size:13px; line-height:1.55; color:#E4EEEC;}
+  .trace{display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; padding-top:10px; border-top:1px dashed rgba(255,255,255,0.15);}
+  .trace-step{background:rgba(46,125,140,0.15); border:1px solid rgba(46,125,140,0.4); border-radius:7px; padding:6px 9px; min-width:88px;}
+  .trace-step .ts-label{font-family:'IBM Plex Mono',monospace; font-size:8.5px; letter-spacing:0.05em; color:#7FA8AC; margin-bottom:3px;}
+  .trace-step .ts-val{font-size:11px; color:#E4EEEC; line-height:1.35;}
+  .trace-arrow{align-self:center; color:#3A5A5E; font-size:12px;}
+
+  .roadmap{margin-bottom:32px;}
+  .roadmap-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px;}
+  .rm-card{border-radius:12px; padding:16px 17px;}
+  .rm-card.built{background:#EDF5EF; border:1px solid #CFE5D4;}
+  .rm-card.next{background:#fff; border:1px dashed var(--line);}
+  .rm-title{font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.06em; margin-bottom:6px;}
+  .rm-card.built .rm-title{color:#2E7D4E;}
+  .rm-card.next .rm-title{color:var(--muted);}
+  .rm-item{font-size:12.5px; color:var(--ink); margin-bottom:5px; line-height:1.4;}
+
+  .arch{background:var(--deep); border-radius:16px; padding:28px 32px; color:var(--sand);}
+  .arch-label{color:#9FD4C4;}
+  .arch-flow{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:14px 0 16px;}
+  .arch-box{background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); border-radius:10px; padding:11px 15px; font-family:'IBM Plex Mono',monospace; font-size:11.5px; flex:1; min-width:150px;}
+  .arch-box b{display:block; font-size:12.5px; margin-bottom:3px; color:#fff;}
+  .arrow-b{color:#5C8A8E; font-size:16px;}
+  .arch p{font-size:12.5px; color:#B9CFD1; line-height:1.6; max-width:800px; margin:0;}
+
+  .pill.sim{background:rgba(201,138,30,0.18); color:#F0C97A;}
+  .dot.sim{background:#E0A93B;}
+  .notice{background:#FFF8E6; border:1px solid #E6CF8C; border-left:4px solid var(--warning); border-radius:10px; padding:14px 18px; margin-bottom:24px; font-size:13px; line-height:1.55; color:#4A3A12;}
+  .notice ul{margin:6px 0 0; padding-left:18px;}
+  .notice li{margin-bottom:3px;}
+  footer{text-align:center; padding:24px; font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--muted);}
+  @media (max-width:640px){
+    header, main{padding-left:18px; padding-right:18px;}
+    .header-row{flex-direction:column;}
+    .module-pills{align-items:flex-start;}
+    .brand-row{gap:12px;}
+    .logo-mark{width:32px; height:35px;}
+    h1{font-size:26px;}
+    .replay-box{flex-direction:column; align-items:stretch; gap:14px;}
+    .replay-date{min-width:0;}
+    .play-btn{align-self:flex-start;}
+    #map{height:280px;}
+    .impact-strip{flex-direction:column; align-items:flex-start; gap:16px;}
+    .impact-cite{margin-left:0; border-left:none; padding-left:0; border-top:1px solid #2E5A61; padding-top:14px;}
+    .forecast-row{flex-wrap:wrap;}
+    .fr-name{width:auto;}
+    .fr-val{width:auto; text-align:left;}
+    .ask-row{flex-direction:column;}
+    .ask-row button{padding:11px; width:100%;}
+    .chat-log{max-height:none;}
+    .trace{gap:5px;}
+    .trace-step{min-width:76px; padding:5px 7px;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-row">
+    <div class="brand-row">
+      <svg class="logo-mark" viewBox="0 0 200 220" xmlns="http://www.w3.org/2000/svg">
+        <path d="M100,8 L178,38 L178,108 C178,168 140,202 100,214 C60,202 22,168 22,108 L22,38 Z" fill="#12414A" stroke="#F6F4EE" stroke-width="9" stroke-linejoin="round"/>
+        <path d="M58,58 C58,90 88,100 100,150" fill="none" stroke="#F6F4EE" stroke-width="8" stroke-linecap="round"/>
+        <path d="M100,42 L100,150" fill="none" stroke="#F6F4EE" stroke-width="8" stroke-linecap="round"/>
+        <path d="M142,58 C142,90 112,100 100,150" fill="none" stroke="#F6F4EE" stroke-width="8" stroke-linecap="round"/>
+        <circle cx="100" cy="150" r="10" fill="#F6F4EE"/>
+      </svg>
+      <div>
+        <div class="wordmark">TAHADHARI — PROTOTYPE</div>
+        <h1>Flood coordination prototype</h1>
+        <p class="tagline">A prototype coordination layer for flood response: it turns a river-risk reading into a prioritized, explainable action addressed to the responsible agency. This page is Module 1 (flood, Tana River County, Kenya) running on a simulated scenario. It is a proof of concept, not a deployed system.</p>
+        <p class="tagline" style="margin-top:6px; font-size:12px; color:#7FA8AC;">Watershed Kernel (coordination core) · Trace (explainability layer) · No machine-learning model is used</p>
+      </div>
+    </div>
+    <div class="module-pills">
+      <div class="pill sim"><span class="dot sim"></span>FLOOD MODULE — SIMULATED DATA</div>
+      <div class="pill live"><span class="dot live"></span>TRACE — RULE-BASED</div>
+      <div class="pill stub"><span class="dot stub"></span>WILDFIRE MODULE — STUB</div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="notice">
+    <b>What you are looking at: a simulated scenario, not live monitoring.</b>
+    <ul>
+      <li>Water levels, upstream rainfall and the seven days are scripted illustrative values. They are not GloFAS data and not a real event.</li>
+      <li>Danger thresholds are placeholders, not official flood-warning levels. Populations, shelters, contacts and organizations are illustrative. No agency has been contacted for this demo or uses it.</li>
+      <li>Nothing is sent. "Recommended" and "routed" mean what the system would suggest, and to whom.</li>
+      <li>The Python prototype behind this page contains the GloFAS integration and automated tests. This page re-implements its scoring logic on scripted data. Informal conversations with a few residents and one humanitarian disaster-management officer informed the design; it has not been validated with responders or officials.</li>
+      <li><a href="backtest.html">See the retrospective replay of the April–June 2024 Tana River floods, which uses GloFAS-based modelled discharge instead of scripted values →</a></li>
+    </ul>
+  </div>
+
+  <div class="section-label">Simulated week — day by day, as the system would have scored it</div>
+  <div class="replay-box">
+    <div class="replay-date"><span>SCENARIO DAY</span><span id="dateReadout">Day 1</span></div>
+    <div class="slider-wrap">
+      <input type="range" id="daySlider" min="0" max="6" value="0" step="1">
+      <div class="slider-ticks"><span>Day 1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>Day 7</span></div>
+    </div>
+    <button class="play-btn" id="playBtn">▶ PLAY SCENARIO</button>
+  </div>
+
+  <div class="impact-strip" id="impactStrip"></div>
+
+  <div class="two-col">
+    <div class="panel">
+      <div id="map"></div>
+      <div class="map-legend">
+        <span><span class="swatch" style="background:#3E8F5C"></span>None</span>
+        <span><span class="swatch" style="background:#2E7D8C"></span>Watch</span>
+        <span><span class="swatch" style="background:#C98A1E"></span>Warning</span>
+        <span><span class="swatch" style="background:#C4571F"></span>Severe</span>
+        <span><span class="swatch" style="background:#A13A2E"></span>Critical</span>
+        <span style="margin-left:10px; padding-left:10px; border-left:1px solid var(--line)"><span style="display:inline-block;width:8px;height:8px;background:#2E7D8C;transform:rotate(45deg)"></span>&nbsp;Shelter</span>
+        <span><span style="display:inline-block;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:8px solid #C98A1E"></span>&nbsp;Road crossing</span>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="forecast-list" id="forecastList"></div>
+    </div>
+  </div>
+  <p style="font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--muted); margin:-20px 0 32px;">
+    Left: OpenStreetMap tiles with approximate town coordinates. Right: simulated river-level readings (solid) and a 3-day linear extrapolation (dashed). The dashed line is a trend extrapolation, not a hydrological forecast and not a trained model.
+  </p>
+
+  <div class="section-label">Decision basis — what happens when a forecast underestimates (simulated)</div>
+  <div class="src-box">
+    <p class="fmt-note" style="margin:0 0 10px">In November 2023 the GloFAS forecast stayed below the Kenya Red Cross trigger while river gauges showed the river at alarm level, and the Red Cross activated on the gauge readings (Red Cross early action protocol annual report, May 2024). This switch reproduces that situation with invented numbers: the simulated forecast reads 20% below the simulated gauge. "Gauge overrides forecast" takes the higher of the two risk levels. "Forecast only" uses the forecast alone.</p>
+    <div class="lang-row" role="group" aria-label="Decision basis">
+      <button type="button" class="lang-btn on" id="modeOverride" aria-pressed="true">Gauge overrides forecast</button>
+      <button type="button" class="lang-btn" id="modeForecast" aria-pressed="false">Forecast only</button>
+    </div>
+    <div class="src-compare" id="srcCompare"></div>
+  </div>
+
+  <div class="section-label">Risk assessment — 5 locations, Tana River flood plain (simulated readings, illustrative thresholds)</div>
+  <div class="grid" id="locationGrid"></div>
+
+  <div class="section-label">Decision dashboard — prioritized recommendations (simulated; nothing is sent)</div>
+  <div id="alertFeed"></div>
+
+  <div class="section-label">Alert formats — drafts shaped by resident and responder input (simulated; not sent)</div>
+  <p class="fmt-note">Informal accounts from flood survivors said warnings reached them through the river itself, neighbours, relatives and radio that gave only broad statements, and that they moved when elders, community health promoters or Red Cross volunteers came to the door. Contacts who saw earlier drafts said they would not evacuate on a text alone: they would check the river or local gauge themselves, they know water from Wenje takes roughly 24 to 36 hours to reach the delta, they trust a message that comes from the Red Cross, and they would most like to hear it read live on radio by a presenter they know by name. These drafts now carry the gauge reading, an upstream note and a sender label for that reason. The timing is a simple trend estimate in whole days, and the 24 to 36 hour travel time is resident knowledge, not verified here. Kiswahili text is a machine-written draft and must be reviewed by a native speaker and a local radio producer before any use. Nothing here has been tested for whether people would act on it.</p>
+  <div class="lang-row" role="group" aria-label="Language of the draft alerts">
+    <button type="button" class="lang-btn on" id="langEn" aria-pressed="true">English</button>
+    <button type="button" class="lang-btn" id="langSw" aria-pressed="false">Kiswahili (draft)</button>
+  </div>
+  <div id="alertFormats"></div>
+
+  <div class="section-label">Relief staging window — lead time for trucking supplies (simulated)</div>
+  <p class="fmt-note">A disaster-management officer said relief teams ideally need at least three days to truck supplies such as family shelter kits, and that flash-flooded seasonal rivers cut roads and trap trucks. Rule used here: recommend staging when the estimated time to the danger level is three days or less. This simulation covers a main river only. It does not cover flash floods on small seasonal rivers, which the officer named as the biggest gap, and it has no road or crossing risk data yet.</p>
+  <div id="stagingPanel"></div>
+
+  <div class="section-label">Response organizations — illustrative routing targets (none contacted)</div>
+  <div class="grid" id="orgDirectory"></div>
+
+  <div class="assistant">
+    <div class="section-label assistant-label">Trace — explainable decision layer</div>
+    <p class="assistant-note">Ask about current conditions in plain language. Unlike a black-box score, every answer below is accompanied by its reasoning trace — the data reading, threshold check, a heuristic confidence value, and the agency routing behind it. This is a rule-based query layer over the simulated scenario data above, not an LLM call. It demonstrates the explainability pattern; a later version could add an LLM over the same schema and would still show its trace.</p>
+    <div class="chips" id="chips"></div>
+    <div class="ask-row">
+      <input type="text" id="askInput" placeholder="e.g. What's the worst situation right now?">
+      <button id="askBtn">ASK</button>
+    </div>
+    <div class="chat-log" id="chatLog"></div>
+  </div>
+
+  <div class="section-label" style="margin-top:34px;">What's real today vs. what's next</div>
+  <div class="roadmap">
+    <div class="roadmap-grid">
+      <div class="rm-card built">
+        <div class="rm-title">BUILT</div>
+        <div class="rm-item">Kernel + module interface (Python reference implementation, 70 automated tests)</div>
+        <div class="rm-item">Flood module with GloFAS integration (Python prototype; not connected to this web page)</div>
+        <div class="rm-item">Rule-based action routing to responsible agencies</div>
+        <div class="rm-item">Rule-based assistant over simulated data (this page)</div>
+        <div class="rm-item">Draft alert formats (SMS, radio, door-to-door) and a staging-window rule, on simulated data (this page)</div>
+      </div>
+      <div class="rm-card next">
+        <div class="rm-title">→ PHASE 2</div>
+        <div class="rm-item">Conversations with responders and residents to validate thresholds and alert formats (outreach sent 27 Oct 2026; I have spoken by phone with one humanitarian disaster-management officer)</div>
+        <div class="rm-item">Connect this demo to live data and test against documented past floods; add river-gauge and Kenya Met Department forecast inputs, which response teams use operationally (needs data access)</div>
+        <div class="rm-item">Wildfire module built out from stub</div>
+        <div class="rm-item">Pilot with one county agency (not yet agreed)</div>
+      </div>
+      <div class="rm-card next">
+        <div class="rm-title">→ PHASE 3</div>
+        <div class="rm-item">SMS/USSD and radio alert formats: drafts in this page, reviewed informally by a few contacts, not yet tested for action</div>
+        <div class="rm-item">Community gauge readings from trusted local observers as a data input, and resident knowledge of travel times checked against gauge data (idea from a resident who checks the local gauge herself)</div>
+        <div class="rm-item">Access planning: a simple 3-day staging rule is in this page. Road and crossing risk is not modelled; a disaster-management officer named Arer and Tulla on the A3 between Bangale and Madogo as early to flood (needs road data; flash floods are not covered by GloFAS)</div>
+        <div class="rm-item">Live two-way API integration with pilot agency</div>
+        <div class="rm-item">ML-trained prediction model, replacing trend projection</div>
+      </div>
+      <div class="rm-card next">
+        <div class="rm-title">→ PHASE 4</div>
+        <div class="rm-item">Digital twin: terrain + infrastructure simulation</div>
+        <div class="rm-item">LLM-backed assistant over the same schema</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arch">
+    <div class="section-label arch-label">Design: a hazard-agnostic core with swappable hazard modules</div>
+    <div class="arch-flow">
+      <div class="arch-box"><b>Watershed Kernel</b>Shared data model + coordination engine. Hazard-agnostic.</div>
+      <div class="arrow-b">→</div>
+      <div class="arch-box"><b>Module Interface</b>Every hazard implements the same contract.</div>
+      <div class="arrow-b">→</div>
+      <div class="arch-box"><b>Action Routing</b>Ranked across hazards, addressed to the responsible organization (illustrative).</div>
+    </div>
+    <p>This page simulates the Python prototype's logic on a scripted scenario: threshold-based risk scoring on river-level trends, ranking by the hazard-agnostic Watershed Kernel, routing to responder organizations, and explanation through Trace. Today there is one working flood module and one minimal wildfire stub that plugs into the kernel with no kernel changes. A Python reference implementation of the same logic (github.com/levisongeri983-cell/tahadhari) has a GloFAS data adapter and 70 automated tests; neither is part of this web page.</p>
+  </div>
+</main>
+
+<footer>Prototype for the MIT Solve Global Climate Challenge · Tana River County, Kenya · Simulated scenario · Illustrative thresholds, not official flood-warning levels · Map © OpenStreetMap contributors</footer>
+
+<script>
+const DANGER = { garsen:5.5, hola:4.5, wenje:6.0, bura:4.0, ngao:5.0 };
+const LOCATIONS = [
+  {id:"garsen", name:"Garsen", pop:7500, lat:-2.2743, lon:40.1177},
+  {id:"hola", name:"Hola", pop:22000, lat:-1.4906, lon:40.0296},
+  {id:"wenje", name:"Wenje", pop:4200, lat:-1.1667, lon:40.0833},
+  {id:"bura", name:"Bura", pop:15800, lat:-1.1167, lon:39.9333},
+  {id:"ngao", name:"Ngao", pop:3100, lat:-2.0833, lon:40.1667},
+];
+// Infrastructure assets — the kernel's Asset schema (kernel/schema.py) has
+// carried this concept from the start; this is it made visible. Shelter
+// status is illustrative; road status is LIVE — it flips to CLOSED
+// automatically when its linked location hits CRITICAL, the same event
+// that triggers the CLOSE_ROAD action in the alert feed (simulated). Not a
+// full digital twin (no terrain/hydrology simulation) — a scoped, honest
+// first layer toward one.
+const ASSETS = [
+  {id:"shelter_garsen", name:"Garsen Primary School Shelter", type:"shelter", lat:-2.2715, lon:40.1145, capacity:300},
+  {id:"shelter_hola", name:"Hola Stadium Shelter", type:"shelter", lat:-1.4930, lon:40.0265, capacity:500},
+  {id:"road_garsen", name:"Garsen River Crossing", type:"road", lat:-2.2775, lon:40.1210, linkedLocation:"garsen"},
+  {id:"road_wenje", name:"Wenje River Crossing", type:"road", lat:-1.1700, lon:40.0865, linkedLocation:"wenje"},
+];
+// Road hotspots reported by a disaster-management officer and in public KeNHA / news reports.
+// Coordinates are NOT filled in yet: add [lat, lon] for each (e.g. from a map pin) and markers appear.
+const HOTSPOTS = [
+  {name:"Arer (A3, between Bangale and Madogo)", latlon:null, note:"Cut by flooding on 9 April 2024; a bus was marooned near Tulla village (KeNHA, news reports)."},
+  {name:"Tulla village area (A3)", latlon:null, note:"Reported with Arer as one of the most affected sections on 9 April 2024."},
+  {name:"Mororo (A3, between Madogo and Garissa)", latlon:null, note:"Flooded in April 2024 (KeNHA)."},
+  {name:"Kona Punda (A3, near Mororo)", latlon:null, note:"Major washout in November 2023; flooded again in April 2024 (KeNHA)."},
+];
+const READINGS = {
+  garsen:[3.1,3.3,3.8,4.6,5.4,5.9,6.1], hola:[2.8,2.9,3.1,3.6,4.2,4.6,4.8],
+  wenje:[3.4,3.7,4.3,5.2,6.1,6.6,6.9], bura:[2.6,2.7,2.9,3.3,3.7,4.0,4.1],
+  ngao:[3.0,3.2,3.7,4.4,5.1,5.6,5.8],
+};
+const RAIN_UPSTREAM = {
+  garsen:[20,35,60,95,80,50,30], hola:[20,35,60,95,80,50,30],
+  wenje:[25,40,65,100,85,55,35], bura:[25,40,65,100,85,55,35],
+  ngao:[20,35,60,95,80,50,30],
+};
+const DATES = ["scenario day 1","scenario day 2","scenario day 3","scenario day 4","scenario day 5","scenario day 6","scenario day 7"];
+const RISK_META = {
+  none:{label:"NONE", color:"#3E8F5C"}, watch:{label:"WATCH", color:"#2E7D8C"},
+  warning:{label:"WARNING", color:"#C98A1E"}, severe:{label:"SEVERE", color:"#C4571F"},
+  critical:{label:"CRITICAL", color:"#A13A2E"},
+};
+const WEIGHT = {none:0, watch:1, warning:2, severe:3, critical:4};
+const MARGIN = 0.8;
+
+// Action type -> responsible organization (this is the "shared operational
+// picture across organizations" made concrete)
+// Directory of stakeholder organizations — the "who" behind the routing
+// above. All metadata (role, coverage, contact) is illustrative; no organization
+// has been contacted. The assigned count is computed from the simulated alerts.
+const ORG_DIRECTORY = {
+  "County Disaster Mgmt Unit": { role: "County-level coordination & standby command", coverage: "Tana River County", contact: "Sub-County HQ, Garsen" },
+  "Kenya Red Cross Society": { role: "Shelter operations & rescue deployment", coverage: "Tana River / Coast Region", contact: "Regional office, Hola" },
+  "Kenya National Highways Authority": { role: "Road & crossing closures, infrastructure status", coverage: "Tana River road network", contact: "Regional engineer, Hola" },
+  "Tahadhari Ops": { role: "Automated monitoring & escalation", coverage: "All monitored locations", contact: "n/a (system role, planned)" },
+};
+
+const ORG_ROUTE = {
+  evacuate: "County Disaster Mgmt Unit",
+  deploy: "Kenya Red Cross Society",
+  road: "Kenya National Highways Authority",
+  shelter: "Kenya Red Cross Society",
+  alert: "County Disaster Mgmt Unit",
+  notify: "County Disaster Mgmt Unit",
+  monitor: "Tahadhari Ops",
+  stage: "Kenya Red Cross Society",
+};
+
+// Simulated sources: gauge-style readings (READINGS) and a model forecast that underestimates them.
+// The numbers are invented; the situation follows the Kenya Red Cross account of November 2023.
+let SOURCE_MODE = "override";   // "override" = gauge can override forecast; "forecast" = forecast only
+const FORECAST_BIAS = 0.8;
+function classify(level, prevLevel, rainUpstream, danger){
+  const trend = level - prevLevel;
+  let risk, score;
+  if (level >= danger) { risk = "critical"; score = Math.min(1.0, 0.85 + (level-danger)/5); }
+  else if (level >= danger - MARGIN) {
+    risk = trend > 0.3 ? "severe" : "warning";
+    score = 0.55 + (level - (danger-MARGIN)) / (MARGIN*2);
+  } else if (rainUpstream >= 60 || trend > 0.5) { risk = "watch"; score = 0.3 + Math.min(rainUpstream/200, 0.2); }
+  else { risk = "none"; score = Math.max(0, level/danger*0.3); }
+  return {risk, score, trend};
+}
+function assess(locId, dayIdx, mode){
+  mode = mode || SOURCE_MODE;
+  const danger = DANGER[locId];
+  const rainUpstream = RAIN_UPSTREAM[locId][dayIdx];
+  const gLevel = READINGS[locId][dayIdx];
+  const gPrev = dayIdx > 0 ? READINGS[locId][dayIdx-1] : gLevel;
+  const fLevel = gLevel * FORECAST_BIAS, fPrev = gPrev * FORECAST_BIAS;
+  const g = classify(gLevel, gPrev, rainUpstream, danger);
+  const f = classify(fLevel, fPrev, rainUpstream, danger);
+  let used, src, level;
+  if (mode === "override" && WEIGHT[g.risk] >= WEIGHT[f.risk]) { used = "gauge"; src = g; level = gLevel; }
+  else { used = "forecast"; src = f; level = fLevel; }
+  let basis;
+  if (mode === "forecast") basis = "forecast only (gauge not used)";
+  else if (WEIGHT[g.risk] > WEIGHT[f.risk]) basis = "gauge overrides the lower forecast";
+  else if (WEIGHT[g.risk] === WEIGHT[f.risk]) basis = "gauge and forecast agree";
+  else basis = "forecast raises the alert above the gauge";
+  const trend = src.trend;
+  const explanation = `${level.toFixed(1)}m vs ${danger.toFixed(1)}m danger threshold, `+
+    `${trend>0?'rising':'stable/falling'} (${trend>=0?'+':''}${trend.toFixed(1)}m), ${rainUpstream}mm upstream rain (72h).`;
+  return {locId, risk:src.risk, score:src.score, level, danger, trend, rainUpstream, explanation, used, basis,
+          gauge:{level:gLevel, risk:g.risk}, forecast:{level:fLevel, risk:f.risk}};
+}
+
+function actionsFor(a){
+  const acts = [];
+  if (a.risk === "critical") {
+    acts.push({t:"Evacuate low-lying areas — river at/above danger level.", org:ORG_ROUTE.evacuate});
+    acts.push({t:"Deploy rescue/response teams ahead of peak level.", org:ORG_ROUTE.deploy});
+    acts.push({t:"Close low-lying river crossings and access roads.", org:ORG_ROUTE.road});
+  } else if (a.risk === "severe") {
+    acts.push({t:"Open designated shelters — level rising fast toward threshold.", org:ORG_ROUTE.shelter});
+    acts.push({t:"Stage relief supplies (shelter kits) now — access may be cut within days.", org:ORG_ROUTE.stage});
+    acts.push({t:"Send urgent alert to residents in flood-plain zones.", org:ORG_ROUTE.alert});
+  } else if (a.risk === "warning") {
+    acts.push({t:"Send precautionary alert — approaching danger threshold.", org:ORG_ROUTE.alert});
+    acts.push({t:"Stage relief supplies (shelter kits) while roads are still open.", org:ORG_ROUTE.stage});
+    acts.push({t:"Notify county disaster management unit for standby.", org:ORG_ROUTE.notify});
+  } else if (a.risk === "watch") {
+    acts.push({t:"Increase monitoring frequency given upstream rainfall trend.", org:ORG_ROUTE.monitor});
+  }
+  return acts;
+}
+
+function renderImpactStrip(assessments){
+  const active = assessments.filter(a => a.risk !== "none");
+  const peopleCovered = active.reduce((sum, a) => sum + a.loc.pop, 0);
+  let actionsCount = 0;
+  const orgs = new Set();
+  active.forEach(a => {
+    const acts = actionsFor(a);
+    actionsCount += acts.length;
+    acts.forEach(x => orgs.add(x.org));
+  });
+  const strip = document.getElementById('impactStrip');
+  strip.innerHTML = `
+    <div class="impact-stat"><div class="iv">${peopleCovered.toLocaleString()}</div><div class="il">PEOPLE IN LOCATIONS WITH ACTIVE ALERTS (ILLUSTRATIVE POPULATIONS)</div></div>
+    <div class="impact-stat"><div class="iv">${actionsCount}</div><div class="il">ACTIONS RECOMMENDED THIS DAY (SIMULATED)</div></div>
+    <div class="impact-stat"><div class="iv">${orgs.size}</div><div class="il">AGENCIES THAT WOULD ACT THIS DAY</div></div>
+    <div class="impact-cite"><b>Why this matters:</b> a May 2025 FAO, WFP and OCHA report found anticipatory action returned up to $7 in avoided losses per $1 invested across ten countries, including Kenya. This demo does not measure outcomes.</div>
+  `;
+}
+
+// ---------- Map ----------
+let map, markers = {}, assetMarkers = {};
+function initMap(){
+  map = L.map('map', {scrollWheelZoom:false}).setView([-1.7, 40.05], 8.6);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors', maxZoom: 13,
+  }).addTo(map);
+  LOCATIONS.forEach(loc => {
+    const icon = L.divIcon({className:'', html:`<div style="width:18px;height:18px;border-radius:50%;background:#3E8F5C;border:2.5px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.4)"></div>`, iconSize:[18,18], iconAnchor:[9,9]});
+    const m = L.marker([loc.lat, loc.lon], {icon}).addTo(map);
+    m.bindPopup(`<b>${loc.name}</b><br>Pop. ${loc.pop.toLocaleString()} (illustrative)`);
+    markers[loc.id] = m;
+  });
+  ASSETS.forEach(asset => {
+    let html;
+    if (asset.type === "shelter") {
+      html = `<div style="width:16px;height:16px;background:#2E7D8C;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.4);transform:rotate(45deg)"></div>`;
+    } else {
+      html = `<div style="width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-bottom:14px solid #C98A1E;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.4))"></div>`;
+    }
+    const icon = L.divIcon({className:'', html, iconSize:[18,18], iconAnchor:[9,9]});
+    const m = L.marker([asset.lat, asset.lon], {icon}).addTo(map);
+    assetMarkers[asset.id] = m;
+  });
+  HOTSPOTS.filter(x => Array.isArray(x.latlon) && x.latlon.length === 2).forEach(x => {
+    L.circleMarker(x.latlon, {radius:8, color:'#A13A2E', weight:3, fillColor:'#fff', fillOpacity:1}).addTo(map)
+      .bindPopup(`<b>${x.name}</b><br>Reported road hotspot (not modelled)<br>${x.note}`);
+  });
+}
+function updateAssets(assessments){
+  ASSETS.forEach(asset => {
+    const m = assetMarkers[asset.id];
+    if (asset.type === "shelter") {
+      m.bindPopup(`<b>${asset.name}</b><br>Type: Shelter (illustrative asset, capacity ${asset.capacity})<br><span style="color:#2E7D8C;font-weight:600">AVAILABLE (simulated)</span>`);
+    } else {
+      const linked = assessments.find(a => a.locId === asset.linkedLocation);
+      const closed = linked && linked.risk === "critical";
+      m.bindPopup(`<b>${asset.name}</b><br>Type: Road crossing<br><span style="color:${closed?'#A13A2E':'#3E8F5C'};font-weight:600">${closed?'CLOSED — flood risk (simulated)':'OPEN (simulated)'}</span>`);
+    }
+  });
+}
+function updateMap(assessments){
+  assessments.forEach(a => {
+    const meta = RISK_META[a.risk];
+    const m = markers[a.locId];
+    const size = a.risk === "critical" ? 24 : a.risk === "severe" ? 21 : 18;
+    m.setIcon(L.divIcon({className:'', html:`<div style="width:${size}px;height:${size}px;border-radius:50%;background:${meta.color};border:2.5px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.4)"></div>`, iconSize:[size,size], iconAnchor:[size/2,size/2]}));
+    m.setPopupContent(`<b>${a.loc.name}</b><br>Pop. ${a.loc.pop.toLocaleString()} (illustrative)<br><span style="color:${meta.color};font-weight:600">${meta.label}</span><br>${a.explanation}`);
+  });
+  updateAssets(assessments);
+}
+
+// ---------- Forecast sparkline (observed + linear trend projection) ----------
+function drawSparkline(canvas, observed, dayIdx, danger){
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width = canvas.clientWidth * 2;
+  const h = canvas.height = canvas.clientHeight * 2;
+  ctx.clearRect(0,0,w,h);
+  const upTo = observed.slice(0, dayIdx+1);
+  // 3-day linear projection from the last two observed points
+  const last = upTo[upTo.length-1], prev = upTo.length>1 ? upTo[upTo.length-2] : last;
+  const slope = last - prev;
+  const projection = [last, last+slope, last+slope*2, last+slope*3];
+
+  const allVals = observed.concat(projection);
+  const minV = Math.min(...allVals, danger) - 0.3, maxV = Math.max(...allVals, danger) + 0.3;
+  const totalPoints = upTo.length + projection.length - 1;
+  const xForIdx = i => (i / totalPoints) * (w-16) + 8;
+  const yForVal = v => h - 10 - ((v - minV)/(maxV-minV)) * (h-20);
+
+  // danger threshold line
+  ctx.strokeStyle = "#0B2E33"; ctx.setLineDash([3,3]); ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(0, yForVal(danger)); ctx.lineTo(w, yForVal(danger)); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // observed (solid teal)
+  ctx.strokeStyle = "#2E7D8C"; ctx.lineWidth = 2.5; ctx.beginPath();
+  upTo.forEach((v,i) => { const x=xForIdx(i), y=yForVal(v); i===0?ctx.moveTo(x,y):ctx.lineTo(x,y); });
+  ctx.stroke();
+
+  // projection (dashed, colored by whether it crosses danger)
+  const crosses = projection.some(v => v >= danger);
+  ctx.strokeStyle = crosses ? "#A13A2E" : "#8AA0A3"; ctx.setLineDash([5,4]); ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  projection.forEach((v,i) => { const x=xForIdx(upTo.length-1+i), y=yForVal(v); i===0?ctx.moveTo(x,y):ctx.lineTo(x,y); });
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+// ---------- Assistant (rule-based) ----------
+function buildTrace(a, acts, dayIdx){
+  const confidence = (dayIdx + 1) >= 3 ? 0.75 : 0.55; // mirrors flood_module.py: needs >=3 readings
+  return [
+    {label:"DATA", val:`${a.level.toFixed(1)}m simulated ${a.used} level`},
+    {label:"SOURCES", val: SOURCE_MODE === "forecast"
+        ? `forecast ${a.forecast.level.toFixed(1)}m → ${RISK_META[a.forecast.risk].label}; gauge not used. Decision: ${a.basis}.`
+        : `forecast ${a.forecast.level.toFixed(1)}m → ${RISK_META[a.forecast.risk].label}; gauge ${a.gauge.level.toFixed(1)}m → ${RISK_META[a.gauge.risk].label}. Decision: ${a.basis}.`},
+    {label:"THRESHOLD CHECK", val:`vs ${a.danger.toFixed(1)}m danger, ${a.trend>=0?'+':''}${a.trend.toFixed(1)}m trend`},
+    {label:"CONFIDENCE", val:`${confidence.toFixed(2)} — heuristic from days of history, not a calibrated probability`},
+    {label:"RECOMMENDATION", val:RISK_META[a.risk].label},
+    {label:"ROUTING", val: acts.length ? [...new Set(acts.map(x=>x.org))].join(", ") : "No agency action needed"},
+  ];
+}
+
+function answerQuestion(q, assessments, dayIdx){
+  const ql = q.toLowerCase();
+  const byPriority = [...assessments].sort((x,y) => (WEIGHT[y.risk]*10+y.score*5) - (WEIGHT[x.risk]*10+x.score*5));
+
+  const mentioned = LOCATIONS.find(l => ql.includes(l.name.toLowerCase()));
+  if (mentioned) {
+    const a = assessments.find(x => x.locId === mentioned.id);
+    const acts = actionsFor(a);
+    const actText = acts.length ? " Recommended: " + acts.map(x=>`${x.t} (${x.org})`).join("; ") + "." : " No action needed.";
+    return { text: `${mentioned.name} is ${RISK_META[a.risk].label} — ${a.explanation}${actText}`, trace: buildTrace(a, acts, dayIdx) };
+  }
+  if (/worst|highest risk|critical|priority/.test(ql)) {
+    const top = byPriority[0];
+    const acts = actionsFor(top);
+    if (WEIGHT[top.risk] === 0) return { text: `No significant risk anywhere on ${DATES[dayIdx]} — ${top.loc.name} is the highest-scoring location and it's still NONE.`, trace: buildTrace(top, acts, dayIdx) };
+    return { text: `Worst situation: ${top.loc.name} — ${RISK_META[top.risk].label}. ${top.explanation} Recommended: ${acts.map(x=>`${x.t} (${x.org})`).join("; ")}.`, trace: buildTrace(top, acts, dayIdx) };
+  }
+  if (/safe|calm|fine|ok\b/.test(ql)) {
+    const calm = assessments.filter(a => a.risk === "none").map(a => a.loc.name);
+    return { text: calm.length ? `Calm on ${DATES[dayIdx]}: ${calm.join(", ")}.` : `No locations are fully clear on ${DATES[dayIdx]} — every location shows at least a WATCH-level signal.`, trace: null };
+  }
+  if (/shelter/.test(ql)) {
+    const need = assessments.filter(a => actionsFor(a).some(x => x.org.includes("Red Cross") && x.t.includes("shelter")));
+    return { text: need.length ? `Shelter recommended at: ${need.map(a=>a.loc.name).join(", ")} — routed to Kenya Red Cross Society.` : `No shelter openings recommended for ${DATES[dayIdx]}.`, trace: null };
+  }
+  if (/agenc|organi[sz]ation|who|respond/.test(ql)) {
+    const orgs = new Set();
+    assessments.forEach(a => actionsFor(a).forEach(x => orgs.add(x.org)));
+    return { text: orgs.size ? `Organizations that would be assigned actions: ${[...orgs].join(", ")}.` : `No agencies would need to act on ${DATES[dayIdx]}.`, trace: null };
+  }
+  const counts = {};
+  assessments.forEach(a => counts[a.risk] = (counts[a.risk]||0)+1);
+  const summary = Object.entries(counts).map(([k,v]) => `${v} ${RISK_META[k].label}`).join(", ");
+  return { text: `Simulated status for ${DATES[dayIdx]}: ${summary} across 5 monitored locations. Try asking about a specific location, or "what's the worst situation?"`, trace: null };
+}
+
+function esc(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function addChatEntry(q, res){
+  const log = document.getElementById('chatLog');
+  const div = document.createElement('div');
+  const traceHtml = res.trace ? `<div class="trace">${res.trace.map((t,i) =>
+    `<div class="trace-step"><div class="ts-label">${t.label}</div><div class="ts-val">${t.val}</div></div>${i<res.trace.length-1?'<div class="trace-arrow">→</div>':''}`
+  ).join('')}</div>` : '';
+  div.innerHTML = `<div class="chat-q">${esc(q)}</div><div class="chat-a">${res.text}${traceHtml}</div>`;
+  log.prepend(div);
+}
+
+// ---------- Render ----------
+let currentAssessments = [];
+
+// ---- Alert formats and staging window (simulated) ---------------------------------
+const STAGING_LEAD_DAYS = 3;   // minimum lead time a disaster-management officer described for trucking supplies
+const SHELTER_BY_LOC = { garsen:"Garsen Primary School", hola:"Hola Stadium" };   // illustrative assets above
+let ALERT_LANG = "en";
+let lastPriority = [];
+
+// Whole days until the simulated level reaches the danger level, from the latest daily change.
+// 0 = already there, null = not rising. A rough trend estimate, not a forecast.
+function daysToDanger(a){
+  if (a.level >= a.danger) return 0;
+  if (a.trend <= 0.05) return null;
+  return Math.max(1, Math.ceil((a.danger - a.level) / a.trend));
+}
+const DELTA_LOCS = ["garsen","ngao"], UPSTREAM_REF = "wenje";
+let lastAssess = {};
+const TXT = {
+  en: {
+    risk:{warning:"WARNING", severe:"SEVERE", critical:"CRITICAL"},
+    now:"has reached the danger level",
+    soon:d => `is expected to reach the danger level within about ${d} day${d>1?"s":""}`,
+    flat:"is not rising at the moment",
+    nowS:"at danger level", soonS:d => `danger level in ~${d}d`, flatS:"not rising now",
+    shelterIs:s => `${s} is the planned shelter`, shelterTbc:"the nearest shelter will be confirmed",
+    upL:r => `Upstream, Wenje is at ${r}; water from Wenje usually takes about 24 to 36 hours to reach the delta.`,
+    upS:" Wenje high; delta in ~1-1.5 days.",
+    reading:(n,lv,dg) => `The river reading near ${n} is ${lv} metres; the danger level is ${dg}.`,
+    check:"You can also check your local river gauge or stream to see how fast it is rising.",
+    smsParts:(r,n,short,up,shelter) => ({core:`FLOOD ${r} - ${n}: river ${short}.`, up, move:" Move to higher ground now.", shelter:` Shelter: ${shelter}.`, tag:" [SIMULATED]"}),
+    shelterS:s => s || "ask village elders or volunteers",
+    radio:(n,t,sh,rd,up,ck,mv) => `Attention listeners in ${n}. The river near ${n} ${t}. ${rd}${up?" "+up:""} Families in low-lying areas should ${mv} to higher ground; ${sh}. ${ck} Village elders and community health promoters will visit households. This is an estimate and may change, so keep listening for updates. [Simulated example, not a real alert.]`,
+    door:(n,t,s,rd,up) => `Visit households in the low-lying parts of ${n}. Tell them: the river ${t}. ${rd}${up?" "+up:""} Move children, elderly people and livestock to higher ground; go to ${s}; take water, documents and medicines. Suggest they also check the local gauge or stream. Note which households need help and report them to the county disaster unit or Red Cross volunteers. Record who has been reached.`,
+  },
+  sw: {
+    risk:{warning:"ONYO", severe:"ONYO KALI", critical:"HATARI"},
+    now:"tayari umefikia kiwango cha hatari",
+    soon:d => `unatarajiwa kufikia kiwango cha hatari ndani ya takriban siku ${d}`,
+    flat:"haupandi kwa sasa",
+    nowS:"umefikia hatari", soonS:d => `hatari baada ya ~siku ${d}`, flatS:"haupandi sasa",
+    shelterIs:s => `${s} ndiyo makazi yaliyopangwa`, shelterTbc:"makazi ya karibu yatathibitishwa",
+    upL:r => `Juu ya mto, Wenje iko katika hali ya ${r}; maji kutoka Wenje kwa kawaida huchukua takriban saa 24 hadi 36 kufika delta.`,
+    upS:" Wenje juu; delta baada ya ~siku 1-1.5.",
+    reading:(n,lv,dg) => `Kipimo cha mto karibu na ${n} ni mita ${lv}; kiwango cha hatari ni mita ${dg}.`,
+    check:"Pia mnaweza kuangalia kipimo cha mto au kijito cha eneo lenu kuona kinavyopanda kwa kasi.",
+    smsParts:(r,n,short,up,shelter) => ({core:`TAHADHARI YA MAFURIKO (${r}) - ${n}: mto ${short}.`, up, move:" Hamia sehemu za juu sasa.", shelter:` Makazi: ${shelter}.`, tag:" [MFANO]"}),
+    shelterS:s => s || "waulize wazee au wahudumu",
+    radio:(n,t,sh,rd,up,ck,mv) => `Wasikilizaji wa ${n}: mto karibu na ${n} ${t}. ${rd}${up?" "+up:""} Familia za maeneo ya chini ${mv} sehemu za juu; ${sh}. ${ck} Wazee wa kijiji na wahudumu wa afya ya jamii watatembelea kaya. Hii ni makadirio na inaweza kubadilika, endeleeni kusikiliza. [Mfano wa majaribio, si tahadhari halisi.]`,
+    door:null,
+  },
+};
+function alertTexts(a, lang){
+  const T = TXT[lang], d = daysToDanger(a);
+  const long = d === 0 ? T.now : d === null ? T.flat : T.soon(d);
+  const short = d === 0 ? T.nowS : d === null ? T.flatS : T.soonS(d);
+  const shelter = SHELTER_BY_LOC[a.locId];
+  const shelterLine = shelter ? T.shelterIs(shelter) : T.shelterTbc;
+  const doorShelter = shelter || "the nearest shelter (to be confirmed with the county)";
+  const upRef = lastAssess[UPSTREAM_REF];
+  const useUp = DELTA_LOCS.includes(a.locId) && upRef && WEIGHT[upRef.risk] >= WEIGHT.warning;
+  const upLong = useUp ? T.upL(T.risk[upRef.risk]) : "";
+  const upLongEn = useUp ? TXT.en.upL(TXT.en.risk[upRef.risk]) : "";
+  const upShort = useUp ? T.upS : "";
+  const rd = T.reading(a.loc.name, a.level.toFixed(1), a.danger.toFixed(1));
+  const rdEn = TXT.en.reading(a.loc.name, a.level.toFixed(1), a.danger.toFixed(1));
+  // SMS: keep within 160 characters by dropping the shelter name, then the upstream note
+  const parts = T.smsParts(T.risk[a.risk], a.loc.name, short, upShort, T.shelterS(shelter));
+  let order = ["core","up","move","shelter","tag"];
+  let sms = order.map(k => parts[k]).join("");
+  if (sms.length > 160){ order = order.filter(k => k !== "shelter"); sms = order.map(k => parts[k]).join(""); }
+  if (sms.length > 160){ order = order.filter(k => k !== "up"); sms = order.map(k => parts[k]).join(""); }
+  return {
+    sms,
+    radio: T.radio(a.loc.name, long, shelterLine, rd, upLong, T.check, (d === 0 || a.risk === 'critical') ? (lang === 'sw' ? 'zihamie' : 'move') : (lang === 'sw' ? 'zijiandae kuhamia' : 'prepare to move')),
+    door: TXT.en.door(a.loc.name, d === 0 ? TXT.en.now : d === null ? TXT.en.flat : TXT.en.soon(d), doorShelter, rdEn, upLongEn),
+  };
+}
+function renderAlertFormats(priority){
+  const el = document.getElementById('alertFormats');
+  const list = priority.filter(a => WEIGHT[a.risk] >= WEIGHT.warning);
+  if (!list.length){ el.innerHTML = `<div class="empty-state">No location is at WARNING or above on this scenario day, so no public alert drafts are needed (simulated).</div>`; return; }
+  el.innerHTML = list.map(a => {
+    const meta = RISK_META[a.risk], t = alertTexts(a, ALERT_LANG);
+    const over = t.sms.length > 160;
+    return `<div class="fmt-card" style="border-left-color:${meta.color}">
+      <div class="alert-head"><span class="badge" style="background:${meta.color}">${meta.label}</span><strong>${a.loc.name}</strong></div>
+      <div class="fmt-grid">
+        <div class="fmt-box"><div class="fmt-label"><span>SMS · FROM A TRUSTED SENDER, E.G. RED CROSS (ILLUSTRATIVE)</span><span class="${over?'over':''}">${t.sms.length}/160</span></div><div class="fmt-text">${esc(t.sms)}</div></div>
+        <div class="fmt-box"><div class="fmt-label"><span>RADIO SCRIPT${ALERT_LANG==='sw'?' (KISWAHILI, DRAFT)':''} · FOR A TRUSTED LOCAL PRESENTER TO READ LIVE, IN THEIR OWN WORDS</span></div><div class="fmt-text">${esc(t.radio)}</div></div>
+        <div class="fmt-box"><div class="fmt-label"><span>DOOR-TO-DOOR BRIEF</span><span>ELDERS · HEALTH PROMOTERS · VOLUNTEERS</span></div><div class="fmt-text">${esc(t.door)}${ALERT_LANG==='sw'?' <i>(English; messengers deliver it in the local language.)</i>':''}</div></div>
+      </div></div>`;
+  }).join('');
+}
+function renderStaging(assessments){
+  const el = document.getElementById('stagingPanel');
+  const roads = {};
+  ASSETS.filter(x => x.type === 'road').forEach(r => { roads[r.linkedLocation] = r; });
+  const rows = assessments.map(a => {
+    const d = daysToDanger(a), rk = RISK_META[a.risk];
+    let status, color;
+    if (d === 0){ status = "Staging window has closed: the danger level has been reached. Rely on supplies already in place, and check access before sending trucks."; color = RISK_META.critical.color; }
+    else if (d !== null && d <= STAGING_LEAD_DAYS){ status = `STAGE NOW: the danger level is about ${d} day${d>1?'s':''} away, inside the ${STAGING_LEAD_DAYS}-day window needed to truck supplies. Send family shelter kits and other non-food items before access is cut.`; color = RISK_META.severe.color; }
+    else if (d !== null){ status = `About ${d} days to the danger level: prepare stock and routes; staging not yet triggered.`; color = RISK_META.warning.color; }
+    else { status = "Not rising at the moment: no staging needed yet."; color = RISK_META.none.color; }
+    const road = roads[a.locId];
+    const crossing = road ? `Crossing: ${a.risk === 'critical' ? 'CLOSED' : 'OPEN'} (simulated)` : "No mapped crossing";
+    return `<div class="stage-row" style="border-left-color:${color}"><b>${a.loc.name}</b><div>${status}<br><span style="color:var(--muted)">${crossing} · level ${a.level.toFixed(1)}m of ${a.danger.toFixed(1)}m</span></div></div>`;
+  }).join('');
+  el.innerHTML = rows + `<p class="fmt-note">Reported but not modelled: a disaster-management officer said roads at Arer and Tulla flood or breach early. Public reports agree: on 9 April 2024 flooding cut the A3 at Arer, between Bangale and Madogo in Tana River County, and a bus was marooned near Tulla village. Mororo and Kona Punda, between Madogo and Garissa, flooded in November 2023 and April 2024. Map markers appear below once coordinates are added.</p>
+    <p class="fmt-note">Residents describe about 24 to 36 hours for water to travel from Wenje to the delta. That is shorter than the three days relief trucks need, so staging for the delta cannot wait for an upstream rise alone. It has to start from earlier signals such as upstream rainfall and forecasts.</p>`;
+}
+
+function renderSourceCompare(dayIdx){
+  const n = mode => LOCATIONS.filter(l => WEIGHT[assess(l.id, dayIdx, mode).risk] >= WEIGHT.warning).length;
+  const f = n("forecast"), o = n("override");
+  document.getElementById('srcCompare').innerHTML =
+    `On ${DATES[dayIdx]}: the forecast alone puts <b>${f} of ${LOCATIONS.length}</b> locations at WARNING or above; letting the gauge override puts <b>${o} of ${LOCATIONS.length}</b>. (Simulated numbers.)`;
+}
+function setMode(m){
+  SOURCE_MODE = m;
+  document.getElementById('modeOverride').classList.toggle('on', m === 'override');
+  document.getElementById('modeForecast').classList.toggle('on', m === 'forecast');
+  document.getElementById('modeOverride').setAttribute('aria-pressed', m === 'override');
+  document.getElementById('modeForecast').setAttribute('aria-pressed', m === 'forecast');
+  render(parseInt(document.getElementById('daySlider').value));
+}
+function render(dayIdx){
+  document.getElementById('dateReadout').textContent = 'Day ' + (dayIdx+1);
+  const assessments = LOCATIONS.map(loc => ({...assess(loc.id, dayIdx), loc}));
+  currentAssessments = assessments;
+
+  updateMap(assessments);
+  renderImpactStrip(assessments);
+
+  // forecast list
+  const fl = document.getElementById('forecastList');
+  fl.innerHTML = "";
+  LOCATIONS.forEach(loc => {
+    const row = document.createElement('div');
+    row.className = 'forecast-row';
+    const a = assessments.find(x => x.locId === loc.id);
+    row.innerHTML = `<div class="fr-name">${loc.name}</div><canvas class="fr-spark"></canvas><div class="fr-val">${a.level.toFixed(1)}m → trend</div>`;
+    fl.appendChild(row);
+    const canvas = row.querySelector('canvas');
+    requestAnimationFrame(() => drawSparkline(canvas, READINGS[loc.id], dayIdx, DANGER[loc.id]));
+  });
+
+  // location cards
+  const grid = document.getElementById('locationGrid');
+  grid.innerHTML = "";
+  assessments.forEach(a => {
+    const meta = RISK_META[a.risk];
+    const fillPct = Math.min((a.level / (a.danger * 1.3)) * 100, 100);
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <div class="card-top">
+        <div><div class="loc-name">${a.loc.name}</div><div class="loc-pop">POP. ${a.loc.pop.toLocaleString()} · ILLUSTRATIVE</div></div>
+        <div class="badge" style="background:${meta.color}">${meta.label}</div>
+      </div>
+      <div class="gauge-row">
+        <div class="gauge"><div class="gauge-fill" style="height:${fillPct}%; background:${meta.color}"></div>
+          <div class="gauge-danger-line" style="bottom:${Math.min(100/1.3,100)}%"></div></div>
+        <div class="gauge-readout"><div class="level">${a.level.toFixed(1)}m</div><div class="danger">danger ${a.danger.toFixed(1)}m</div></div>
+      </div>
+      <div class="explain">${a.explanation}</div>`;
+    grid.appendChild(card);
+  });
+
+  // alert feed with org routing
+  const withPriority = assessments.filter(a => a.risk !== "none")
+    .map(a => ({...a, priorityScore: WEIGHT[a.risk]*10 + a.score*5 + Math.min(a.loc.pop/10000,1)*3}))
+    .sort((x,y) => y.priorityScore - x.priorityScore);
+  const feed = document.getElementById('alertFeed');
+  feed.innerHTML = "";
+  if (withPriority.length === 0) {
+    feed.innerHTML = `<div class="empty-state">No active alerts for ${DATES[dayIdx]} (simulated).</div>`;
+  } else {
+    withPriority.forEach((a, i) => {
+      const meta = RISK_META[a.risk];
+      const div = document.createElement('div');
+      div.className = 'alert'; div.style.borderLeftColor = meta.color;
+      const acts = actionsFor(a);
+      div.innerHTML = `
+        <div class="alert-head">
+          <span class="badge" style="background:${meta.color}">${meta.label}</span>
+          <strong>${a.loc.name}</strong>
+          <span style="margin-left:auto; font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--muted)">PRIORITY ${i+1}</span>
+        </div>
+        <div class="alert-msg">${a.explanation}</div>
+        ${acts.map(x => `<div class="action"><span class="arrow">→</span><span>${x.t}</span><span class="org-tag">${x.org}</span></div>`).join('')}`;
+      feed.appendChild(div);
+    });
+  }
+
+  renderSourceCompare(dayIdx);
+  lastPriority = withPriority;
+  lastAssess = {}; assessments.forEach(x => { lastAssess[x.locId] = x; });
+  renderAlertFormats(withPriority);
+  renderStaging(assessments);
+
+  // response organization directory — live status computed from current actions
+  const orgActivity = {};
+  Object.keys(ORG_DIRECTORY).forEach(org => orgActivity[org] = []);
+  withPriority.forEach(a => {
+    actionsFor(a).forEach(act => {
+      if (!orgActivity[act.org]) orgActivity[act.org] = [];
+      orgActivity[act.org].push({ loc: a.loc.name, risk: a.risk });
+    });
+  });
+  const dirGrid = document.getElementById('orgDirectory');
+  dirGrid.innerHTML = "";
+  Object.entries(ORG_DIRECTORY).forEach(([org, info]) => {
+    const activity = orgActivity[org] || [];
+    const isActive = activity.length > 0;
+    const card = document.createElement('div');
+    card.className = 'org-card' + (isActive ? ' active' : '');
+    const locsLine = isActive
+      ? activity.map(a => `${a.loc} (${RISK_META[a.risk].label})`).join(', ')
+      : 'No active assignments';
+    card.innerHTML = `
+      <div class="org-top">
+        <div class="org-name">${org}</div>
+        <div class="org-status ${isActive ? 'active' : 'idle'}">${isActive ? activity.length + ' ASSIGNED (SIM.)' : 'NO ASSIGNMENT'}</div>
+      </div>
+      <div class="org-meta"><b>Role:</b> ${info.role}<br><b>Coverage:</b> ${info.coverage}<br><b>Contact (placeholder):</b> ${info.contact}</div>
+      <div class="org-locs">${locsLine}</div>`;
+    dirGrid.appendChild(card);
+  });
+}
+
+document.getElementById('modeOverride').addEventListener('click', () => setMode('override'));
+document.getElementById('modeForecast').addEventListener('click', () => setMode('forecast'));
+function setLang(l){
+  ALERT_LANG = l;
+  document.getElementById('langEn').classList.toggle('on', l==='en'); document.getElementById('langEn').setAttribute('aria-pressed', l==='en');
+  document.getElementById('langSw').classList.toggle('on', l==='sw'); document.getElementById('langSw').setAttribute('aria-pressed', l==='sw');
+  renderAlertFormats(lastPriority);
+}
+document.getElementById('langEn').addEventListener('click', () => setLang('en'));
+document.getElementById('langSw').addEventListener('click', () => setLang('sw'));
+const slider = document.getElementById('daySlider');
+slider.addEventListener('input', () => render(parseInt(slider.value)));
+let playing = false, playTimer = null;
+document.getElementById('playBtn').addEventListener('click', function(){
+  if (playing) { clearInterval(playTimer); playing = false; this.textContent = "▶ PLAY SCENARIO"; return; }
+  playing = true; this.textContent = "❚❚ PAUSE";
+  let d = 0; slider.value = 0; render(0);
+  playTimer = setInterval(() => {
+    d++;
+    if (d > 6) { clearInterval(playTimer); playing = false; document.getElementById('playBtn').textContent = "▶ PLAY SCENARIO"; return; }
+    slider.value = d; render(d);
+  }, 1100);
+});
+
+const SUGGESTED = ["What's the worst situation right now?", "Status at Wenje?", "Any shelters needed?", "Which agencies are involved?"];
+const chipsEl = document.getElementById('chips');
+SUGGESTED.forEach(q => {
+  const c = document.createElement('div'); c.className = 'chip'; c.textContent = q;
+  c.addEventListener('click', () => { addChatEntry(q, answerQuestion(q, currentAssessments, parseInt(slider.value))); });
+  chipsEl.appendChild(c);
+});
+document.getElementById('askBtn').addEventListener('click', ask);
+document.getElementById('askInput').addEventListener('keydown', e => { if (e.key === 'Enter') ask(); });
+function ask(){
+  const input = document.getElementById('askInput');
+  const q = input.value.trim();
+  if (!q) return;
+  addChatEntry(q, answerQuestion(q, currentAssessments, parseInt(slider.value)));
+  input.value = "";
+}
+
+initMap();
+render(0);
+addChatEntry("What's the worst situation right now?", answerQuestion("worst", LOCATIONS.map(loc=>({...assess(loc.id,0), loc})), 0));
+</script>
+</body>
+</html>
